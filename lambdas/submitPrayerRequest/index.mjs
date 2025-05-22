@@ -36,7 +36,7 @@ export const handler = async (event) => {
         isPublic: JSON.stringify(isPublic),
         followUp: JSON.stringify(followUp),
         date: new Date().toLocaleDateString(),
-        status: 'PENDING',
+        prayerStatus: 'PENDING',
     };
 
     try {
