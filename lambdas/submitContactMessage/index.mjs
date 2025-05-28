@@ -11,6 +11,7 @@ export const handler = async (event) => {
         const body = JSON.parse(event.body);
         const timestamp = new Date().toISOString();
         const id = `msg_${Date.now()}`;
+        const ttl = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60;
 
         const params = {
             TableName: TABLE_NAME,
@@ -22,6 +23,8 @@ export const handler = async (event) => {
                 message: body.message,
                 createdAt: timestamp,
                 updatedAt: timestamp,
+                responded: 'false',
+                ttl: ttl,
             },
         };
 
