@@ -7,11 +7,12 @@ const dynamo = DynamoDBDocument.from(new DynamoDB());
 
 export const handler = async (event) => {
     const {
-        text,
+        content: text,
+        title = 'Prayer Request',
         name = '',
         email = '',
-        isPublic = false,
-        followUp = false,
+        isPublic = 'false',
+        requestFollowUp: followUp = 'false',
     } = JSON.parse(event.body);
     const headers = {
         'Content-Type': 'application/json',
@@ -27,20 +28,24 @@ export const handler = async (event) => {
             headers,
         };
     }
+    const id = uuid();
+    const date = new Date().toLocaleDateString();
 
     const payload = {
+        id,
         name,
         email,
         text,
-        id: uuid(),
-        isPublic: JSON.stringify(isPublic),
-        followUp: JSON.stringify(followUp),
-        date: new Date().toLocaleDateString(),
+        isPublic: isPublic ? 'true' : 'false',
+        followUp: followUp ? 'true' : 'false',
+        created_at: date,
         prayerStatus: 'PENDING',
+        title,
+        count: 0,
     };
 
     try {
-        await dynamo.put({ TableName: 'PrayerRequests', Item: payload });
+        await dynamo.put({ TableName: 'PrayerRequest', Item: payload });
     } catch (err) {
         return {
             statusCode: '400',
@@ -48,7 +53,6 @@ export const handler = async (event) => {
                 message: err.message,
                 success: false,
             }),
-            headers,
         };
     }
 
@@ -58,6 +62,5 @@ export const handler = async (event) => {
             message: 'Successfully submitted Prayer Request!',
             success: true,
         }),
-        headers,
     };
 };

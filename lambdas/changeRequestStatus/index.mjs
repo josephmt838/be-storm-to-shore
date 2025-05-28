@@ -1,42 +1,93 @@
-import { DynamoDB } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 
-const dynamo = DynamoDBDocument.from(new DynamoDB());
+const client = new DynamoDBClient({});
+const docClient = DynamoDBDocumentClient.from(client);
+
+const TABLE_NAME = 'PrayerRequest';
 
 export const handler = async (event) => {
-    const { status: prayerStatus, id, createdDate } = JSON.parse(event.body);
-    const headers = {
-        'Content-Type': 'application/json',
-    };
-
     try {
-        // update current dynamoDB item with new status
-        const prayer = await dynamo.update({
-            TableName: 'PrayerRequests',
+        // Extract prayer ID from the path
+        const { id: prayerId } = event.pathParameters;
+
+        if (!prayerId) {
+            return {
+                statusCode: 400,
+                body: JSON.stringify({
+                    message: 'Missing prayer ID in path',
+                }),
+            };
+        }
+
+        // Parse the request body
+        let body;
+        try {
+            body = JSON.parse(event.body);
+        } catch (e) {
+            return {
+                statusCode: 400,
+                body: JSON.stringify({
+                    message: 'Invalid request body',
+                }),
+            };
+        }
+
+        const { prayerStatus, isPublic, date } = body;
+
+        if (!prayerStatus) {
+            return {
+                statusCode: 400,
+                body: JSON.stringify({
+                    message: 'Missing required field: prayerStatus',
+                }),
+            };
+        }
+
+        // Validate prayerStatus
+        const validStatuses = ['PENDING', 'APPROVED', 'REJECTED'];
+        if (!validStatuses.includes(prayerStatus)) {
+            return {
+                statusCode: 400,
+                body: JSON.stringify({
+                    message:
+                        'Invalid prayerStatus. Must be one of: PENDING, APPROVED, REJECTED',
+                }),
+            };
+        }
+
+        // Update the prayer request status
+        const params = {
+            TableName: TABLE_NAME,
             Key: {
-                id: id,
-                date: createdDate,
+                isPublic: isPublic,
+                id: prayerId,
             },
-            UpdateExpression: 'SET prayerStatus = :prayerStatus',
+            UpdateExpression:
+                'SET prayerStatus = :prayerStatus, updatedAt = :updatedAt',
             ExpressionAttributeValues: {
                 ':prayerStatus': prayerStatus,
+                ':updatedAt': new Date().toISOString(),
             },
-        });
-    } catch (err) {
+            ReturnValues: 'ALL_NEW',
+        };
+
+        const { Attributes } = await docClient.send(new UpdateCommand(params));
+
         return {
-            status: '400',
-            body: JSON.stringify({ message: err.message, success: false }),
-            headers,
+            statusCode: 200,
+            body: JSON.stringify({
+                message: 'Prayer request status updated successfully',
+                prayerRequest: Attributes,
+            }),
+        };
+    } catch (error) {
+        return {
+            statusCode: 500,
+            body: JSON.stringify({
+                message: 'Error updating prayer request status',
+                error: error.message,
+            }),
         };
     }
-
-    return {
-        status: '200',
-        body: JSON.stringify({
-            message: `Updated ${id} to status:${prayerStatus}`,
-            prayer,
-            success: true,
-        }),
-        headers,
-    };
 };
