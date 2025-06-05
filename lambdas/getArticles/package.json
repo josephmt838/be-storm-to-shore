@@ -1,0 +1,18 @@
+{
+    "name": "getarticles",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "zip": "zip -r getArticles.zip ."
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "type": "commonjs",
+    "dependencies": {
+        "@aws-sdk/client-dynamodb": "^3.816.0",
+        "@aws-sdk/lib-dynamodb": "^3.816.0"
+    }
+}
