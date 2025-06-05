@@ -7,7 +7,6 @@ const TABLE_NAME = 'StormToShoreArticles';
 
 export const handler = async (event) => {
     try {
-        console.log(event);
         const { id } = event.pathParameters;
 
         if (!id) {
